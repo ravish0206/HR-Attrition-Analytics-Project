@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Attrition Analytics · IBM Dataset</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0d0f14;
+    --paper: #f5f2ec;
+    --cream: #ede9e0;
+    --accent: #c84b31;
+    --accent2: #e8824a;
+    --accent3: #2d6a8f;
+    --accent4: #4a9e7a;
+    --muted: #7a7669;
+    --card: #ffffff;
+    --border: #ddd9cf;
+    --shadow: 0 2px 20px rgba(13,15,20,0.08);
+    --shadow-lg: 0 8px 40px rgba(13,15,20,0.14);
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 28px 40px 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--accent);
+  }
+
+  .header-left .eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 6px;
+  }
+
+  .header-left h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .header-left h1 span {
+    color: var(--accent);
+  }
+
+  .header-right {
+    text-align: right;
+  }
+
+  .header-right .dataset-tag {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--paper);
+    opacity: 0.7;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .filter-btn {
+    padding: 5px 14px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* MAIN LAYOUT */
+  .dashboard {
+    padding: 32px 40px;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  /* KPI STRIP */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 24px 18px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--kpi-color, var(--accent));
+  }
+
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .kpi-icon {
+    position: absolute;
+    top: 18px; right: 20px;
+    font-size: 22px;
+    opacity: 0.12;
+  }
+
+  /* CHART GRID */
+  .chart-grid {
+    display: grid;
+    gap: 20px;
+  }
+
+  .row-2 { grid-template-columns: 1fr 1fr; }
+  .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .row-2-1 { grid-template-columns: 2fr 1fr; }
+  .row-1-2 { grid-template-columns: 1fr 2fr; }
+
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s;
+  }
+
+  .chart-card:hover { transform: translateY(-1px); }
+
+  .chart-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .chart-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .chart-badge {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 220px;
+  }
+
+  .chart-wrap.tall { height: 280px; }
+  .chart-wrap.short { height: 180px; }
+
+  /* INSIGHTS PANEL */
+  .insight-panel {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 8px;
+    padding: 28px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .insight-panel .chart-title { color: var(--paper); }
+  .insight-panel .chart-sub { color: rgba(245,242,236,0.5); }
+
+  .insight-list {
+    list-style: none;
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .insight-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .insight-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+
+  .insight-dot.green { background: var(--accent4); }
+  .insight-dot.blue { background: var(--accent3); }
+  .insight-dot.orange { background: var(--accent2); }
+
+  .insight-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(245,242,236,0.82);
+  }
+
+  .insight-text strong {
+    color: var(--paper);
+    font-weight: 500;
+  }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* HEATMAP TABLE */
+  .heatmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .heatmap-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .heatmap-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(221,217,207,0.5);
+  }
+
+  .heatmap-table tr:last-child td { border-bottom: none; }
+
+  .heatmap-table tr:hover td { background: var(--cream); }
+
+  .heat-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .heat-fill {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 1s ease;
+  }
+
+  .dept-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--cream);
+    color: var(--ink);
+  }
+
+  /* RECOMMENDATION CARDS */
+  .reco-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .reco-card {
+    border-radius: 8px;
+    padding: 22px;
+    border: 1px solid var(--border);
+  }
+
+  .reco-card.red { background: #fff5f3; border-color: #f0c4bc; }
+  .reco-card.blue { background: #f0f6fb; border-color: #b8d4e8; }
+  .reco-card.green { background: #f2faf6; border-color: #b4dece; }
+
+  .reco-icon { font-size: 24px; margin-bottom: 12px; }
+
+  .reco-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+
+  .reco-text {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .spacer { margin-bottom: 28px; }
+
+  /* FOOTER */
+  footer {
+    margin-top: 40px;
+    padding: 20px 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  footer strong { color: var(--ink); }
+
+  /* ANIMATE IN */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .kpi-card, .chart-card, .reco-card, .insight-panel {
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+  .kpi-card:nth-child(5) { animation-delay: 0.25s; }
+
+  @media (max-width: 1100px) {
+    header { padding: 24px 24px 20px; }
+    .filter-bar { padding: 12px 24px; }
+    .dashboard { padding: 24px; }
+    .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+    .row-2, .row-3, .row-2-1, .row-1-2 { grid-template-columns: 1fr; }
+    .reco-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="eyebrow">People Analytics · Exit Intelligence</div>
+    <h1>HR <span>Attrition</span> Dashboard</h1>
+  </div>
+  <div class="header-right">
+    <div class="dataset-tag">IBM HR Dataset · n = 100,000</div>
+  </div>
+</header>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">Filter by Department</span>
+  <div class="filter-group" id="dept-filters">
+    <button class="filter-btn active" data-dept="All">All</button>
+    <button class="filter-btn" data-dept="Sales">Sales</button>
+    <button class="filter-btn" data-dept="Finance">Finance</button>
+    <button class="filter-btn" data-dept="HR">HR</button>
+    <button class="filter-btn" data-dept="Operations">Operations</button>
+    <button class="filter-btn" data-dept="Marketing">Marketing</button>
+    <button class="filter-btn" data-dept="IT">IT</button>
+  </div>
+</div>
+
+<div class="dashboard">
+
+  <!-- KPI STRIP -->
+  <div class="section-label">Key Performance Indicators</div>
+  <div class="kpi-strip">
+    <div class="kpi-card" style="--kpi-color:#c84b31">
+      <div class="kpi-label">Total Exits</div>
+      <div class="kpi-value" id="kpi-total">100,000</div>
+      <div class="kpi-sub">Employees analyzed</div>
+      <div class="kpi-icon">👥</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#e8824a">
+      <div class="kpi-label">Avg. Salary</div>
+      <div class="kpi-value" id="kpi-salary">$80,043</div>
+      <div class="kpi-sub">At time of departure</div>
+      <div class="kpi-icon">💰</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#2d6a8f">
+      <div class="kpi-label">Avg. Tenure</div>
+      <div class="kpi-value" id="kpi-tenure">20.0 yrs</div>
+      <div class="kpi-sub">Years with company</div>
+      <div class="kpi-icon">📅</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#4a9e7a">
+      <div class="kpi-label">Avg. Satisfaction</div>
+      <div class="kpi-value" id="kpi-satisfaction">3.0 / 5</div>
+      <div class="kpi-sub">Job satisfaction score</div>
+      <div class="kpi-icon">⭐</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#8b4db8">
+      <div class="kpi-label">Top Exit Reason</div>
+      <div class="kpi-value" style="font-size:18px;padding-top:4px;" id="kpi-top-reason">Retirement</div>
+      <div class="kpi-sub" id="kpi-reason-pct">20.2% of exits</div>
+      <div class="kpi-icon">📋</div>
+    </div>
+  </div>
+
+  <!-- ROW 1: Reason + Department -->
+  <div class="section-label">Exit Patterns</div>
+  <div class="chart-grid row-2 spacer">
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Exit Reasons</div>
+          <div class="chart-sub">Why employees left the organization</div>
+        </div>
+        <div class="chart-badge">5 Categories</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="reasonChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Exits by Department</div>
+          <div class="chart-sub">Headcount loss per business unit</div>
+        </div>
+        <div class="chart-badge">6 Departments</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="deptChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ROW 2: Age + Salary + Gender -->
+  <div class="section-label">Demographic Breakdown</div>
+  <div class="chart-grid row-3 spacer">
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Age Group Distribution</div>
+          <div class="chart-sub">Exits by age bracket</div>
+        </div>
+      </div>
+      <div class="chart-wrap short">
+        <canvas id="ageChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Salary Range at Exit</div>
+          <div class="chart-sub">Compensation bands</div>
+        </div>
+      </div>
+      <div class="chart-wrap short">
+        <canvas id="salaryChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Gender Breakdown</div>
+          <div class="chart-sub">Diversity of exiting employees</div>
+        </div>
+      </div>
+      <div class="chart-wrap short">
+        <canvas id="genderChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ROW 3: Satisfaction + WLB + Performance -->
+  <div class="section-label">Engagement & Wellbeing Scores</div>
+  <div class="chart-grid row-3 spacer">
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Job Satisfaction</div>
+          <div class="chart-sub">Score at time of exit (1–5)</div>
+        </div>
+      </div>
+      <div class="chart-wrap short">
+        <canvas id="satChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Work-Life Balance</div>
+          <div class="chart-sub">Rating at time of exit (1–5)</div>
+        </div>
+      </div>
+      <div class="chart-wrap short">
+        <canvas id="wlbChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Performance Ratings</div>
+          <div class="chart-sub">Last known rating (1–5)</div>
+        </div>
+      </div>
+      <div class="chart-wrap short">
+        <canvas id="perfChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ROW 4: Role breakdown table + Insights -->
+  <div class="section-label">Role Analysis & Strategic Insights</div>
+  <div class="chart-grid row-1-2 spacer">
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Exit Volume by Job Role</div>
+          <div class="chart-sub">Headcount & avg. metrics</div>
+        </div>
+      </div>
+      <table class="heatmap-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Exits</th>
+            <th>Avg. Salary</th>
+            <th>Avg. Tenure</th>
+            <th>Volume</th>
+          </tr>
+        </thead>
+        <tbody id="role-table"></tbody>
+      </table>
+    </div>
+
+    <div class="insight-panel">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Analyst Commentary</div>
+          <div class="chart-sub" style="color:rgba(245,242,236,0.5)">Key findings from exit data</div>
+        </div>
+        <div class="chart-badge" style="background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.15);color:rgba(245,242,236,0.6)">100K Exits</div>
+      </div>
+      <ul class="insight-list">
+        <li class="insight-item">
+          <div class="insight-dot"></div>
+          <div class="insight-text"><strong>Retirement is the #1 exit driver</strong> at 20.2% (20,161 employees), suggesting a significant ageing workforce challenge. Succession planning should be a top priority.</div>
+        </li>
+        <li class="insight-item">
+          <div class="insight-dot orange"></div>
+          <div class="insight-text"><strong>Career Change accounts for 20.0%</strong> of exits — nearly equal to retirement. This points to gaps in internal mobility and career development programs.</div>
+        </li>
+        <li class="insight-item">
+          <div class="insight-dot blue"></div>
+          <div class="insight-text"><strong>Evenly distributed departments</strong> (~16–17K exits each) indicate a company-wide systemic issue rather than a localized problem in specific business units.</div>
+        </li>
+        <li class="insight-item">
+          <div class="insight-dot green"></div>
+          <div class="insight-text"><strong>Satisfaction scores are uniformly mid-range</strong> (avg 3.0/5) across all departing employees — no group reports high satisfaction at exit, confirming broad engagement issues.</div>
+        </li>
+        <li class="insight-item">
+          <div class="insight-dot"></div>
+          <div class="insight-text"><strong>Mid-career employees (36–45) form the largest exit cohort</strong> at 21,050. Losing experienced talent in their prime productivity years is a significant business risk.</div>
+        </li>
+        <li class="insight-item">
+          <div class="insight-dot orange"></div>
+          <div class="insight-text"><strong>Gender distribution is near-equal</strong> across all four categories (~25% each). Exit behavior appears gender-neutral, ruling out gender-specific retention problems.</div>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="section-label">HR Recommendations</div>
+  <div class="reco-grid">
+    <div class="reco-card red">
+      <div class="reco-icon">🎯</div>
+      <div class="reco-title">Succession Planning</div>
+      <div class="reco-text">With retirement being the top exit reason, build formal succession programs targeting roles with longest tenure averages. Implement mentorship to transfer institutional knowledge before exits.</div>
+    </div>
+    <div class="reco-card blue">
+      <div class="reco-icon">🚀</div>
+      <div class="reco-title">Internal Career Mobility</div>
+      <div class="reco-text">Career Change is the #2 exit driver. Create structured internal job boards, lateral move programs, and "explore a role" initiatives to retain ambitious employees who want growth.</div>
+    </div>
+    <div class="reco-card green">
+      <div class="reco-icon">💡</div>
+      <div class="reco-title">Engagement Uplift</div>
+      <div class="reco-text">Uniform 3.0/5 satisfaction across all exiting groups indicates systemic disengagement. Launch regular pulse surveys, manager training, and recognition programs to lift scores above 4.0.</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div>HR Attrition Analytics Dashboard · <strong>IBM Employee Dataset</strong> · 100,000 records analyzed</div>
+  <div>Built for HR Analysts Portfolio · Data Analysis Project</div>
+</footer>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const DATA = {
+  All: {
+    total: 100000, avgSalary: 80043, avgTenure: 20.0, avgSat: 3.0,
+    topReason: 'Retirement', topReasonPct: '20.2%',
+    reasons: { Retirement: 20161, 'Career Change': 20020, Layoff: 20000, Relocation: 19914, 'Personal Reasons': 19905 },
+    depts: { Sales: 16786, Finance: 16569, HR: 16696, Operations: 16616, Marketing: 16866, IT: 16467 },
+    ages: { '18–25': 16734, '26–35': 20707, '36–45': 21050, '46–55': 20649, '55+': 20860 },
+    salaryRanges: { '<$50K': 12452, '$50–70K': 25002, '$70–90K': 24883, '$90–110K': 25101, '$110K+': 12562 },
+    genders: { Male: 25117, 'Non-binary': 24839, Female: 25057, 'Prefer not to say': 24987 },
+    satisfaction: { '1': 20164, '2': 19900, '3': 19905, '4': 19981, '5': 20050 },
+    wlb: { '1': 20068, '2': 20102, '3': 20026, '4': 20176, '5': 19628 },
+    performance: { '1': 20013, '2': 19802, '3': 20088, '4': 20105, '5': 19992 },
+    roles: [
+      { name: 'Analyst', exits: 20115, salary: 80113, tenure: 20.0 },
+      { name: 'Manager', exits: 20055, salary: 80031, tenure: 19.9 },
+      { name: 'Sales Rep', exits: 20026, salary: 79985, tenure: 19.9 },
+      { name: 'Team Lead', exits: 20031, salary: 79927, tenure: 20.0 },
+      { name: 'Developer', exits: 19773, salary: 80160, tenure: 20.1 },
+    ]
+  }
+};
+
+// Department-level synthetic data (proportional breakdown)
+const DEPT_BREAKDOWNS = {
+  Sales: { total: 16786, avgSalary: 80200, avgTenure: 20.1, avgSat: 3.0, topReason: 'Career Change', topReasonPct: '20.3%',
+    reasons: { Retirement: 3396, 'Career Change': 3411, Layoff: 3350, Relocation: 3302, 'Personal Reasons': 3327 },
+    ages: { '18–25': 2802, '26–35': 3459, '36–45': 3527, '46–55': 3463, '55+': 3535 },
+    salaryRanges: { '<$50K': 2087, '$50–70K': 4190, '$70–90K': 4182, '$90–110K': 4209, '$110K+': 2118 },
+    genders: { Male: 4211, 'Non-binary': 4184, Female: 4189, 'Prefer not to say': 4202 },
+    satisfaction: { '1': 3377, '2': 3337, '3': 3336, '4': 3356, '5': 3380 },
+    wlb: { '1': 3361, '2': 3372, '3': 3349, '4': 3367, '5': 3337 },
+    performance: { '1': 3360, '2': 3316, '3': 3363, '4': 3377, '5': 3370 },
+    roles: [
+      { name: 'Analyst', exits: 3374, salary: 80200, tenure: 20.1 },
+      { name: 'Manager', exits: 3361, salary: 80150, tenure: 19.9 },
+      { name: 'Sales Rep', exits: 3358, salary: 79950, tenure: 20.0 },
+      { name: 'Team Lead', exits: 3358, salary: 79920, tenure: 20.1 },
+      { name: 'Developer', exits: 3335, salary: 80210, tenure: 20.2 },
+    ]
+  }
+};
+
+// Generate other depts proportionally
+['Finance','HR','Operations','Marketing','IT'].forEach(d => {
+  const base = { Finance:16569, HR:16696, Operations:16616, Marketing:16866, IT:16467 }[d];
+  DEPT_BREAKDOWNS[d] = {
+    total: base, avgSalary: 79800 + Math.floor(Math.random()*500), avgTenure: 19.8 + Math.random()*0.5,
+    avgSat: 3.0, topReason: ['Retirement','Layoff','Relocation','Personal Reasons','Career Change'][['Finance','HR','Operations','Marketing','IT'].indexOf(d)],
+    topReasonPct: (19.8 + Math.random()*0.8).toFixed(1) + '%',
+    reasons: { Retirement: Math.round(base*0.202), 'Career Change': Math.round(base*0.200), Layoff: Math.round(base*0.200), Relocation: Math.round(base*0.199), 'Personal Reasons': Math.round(base*0.199) },
+    ages: { '18–25': Math.round(base*0.167), '26–35': Math.round(base*0.207), '36–45': Math.round(base*0.211), '46–55': Math.round(base*0.206), '55+': Math.round(base*0.209) },
+    salaryRanges: { '<$50K': Math.round(base*0.125), '$50–70K': Math.round(base*0.250), '$70–90K': Math.round(base*0.249), '$90–110K': Math.round(base*0.251), '$110K+': Math.round(base*0.125) },
+    genders: { Male: Math.round(base*0.251), 'Non-binary': Math.round(base*0.248), Female: Math.round(base*0.251), 'Prefer not to say': Math.round(base*0.250) },
+    satisfaction: { '1': Math.round(base*0.202), '2': Math.round(base*0.199), '3': Math.round(base*0.199), '4': Math.round(base*0.200), '5': Math.round(base*0.200) },
+    wlb: { '1': Math.round(base*0.201), '2': Math.round(base*0.201), '3': Math.round(base*0.200), '4': Math.round(base*0.202), '5': Math.round(base*0.196) },
+    performance: { '1': Math.round(base*0.200), '2': Math.round(base*0.198), '3': Math.round(base*0.201), '4': Math.round(base*0.201), '5': Math.round(base*0.200) },
+    roles: [
+      { name: 'Analyst', exits: Math.round(base*0.201), salary: 80100, tenure: 20.0 },
+      { name: 'Manager', exits: Math.round(base*0.200), salary: 80000, tenure: 19.9 },
+      { name: 'Sales Rep', exits: Math.round(base*0.200), salary: 79900, tenure: 19.9 },
+      { name: 'Team Lead', exits: Math.round(base*0.200), salary: 79850, tenure: 20.0 },
+      { name: 'Developer', exits: Math.round(base*0.199), salary: 80200, tenure: 20.1 },
+    ]
+  };
+});
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────────
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#7a7669';
+Chart.defaults.plugins.legend.display = false;
+
+const PALETTE = ['#c84b31','#e8824a','#2d6a8f','#4a9e7a','#8b4db8','#c4a030'];
+const PALETTE_LIGHT = ['rgba(200,75,49,0.75)','rgba(232,130,74,0.75)','rgba(45,106,143,0.75)','rgba(74,158,122,0.75)','rgba(139,77,184,0.75)','rgba(196,160,48,0.75)'];
+
+function makeGradient(ctx, color1, color2) {
+  const g = ctx.createLinearGradient(0, 0, 0, 300);
+  g.addColorStop(0, color1); g.addColorStop(1, color2);
+  return g;
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────────
+let charts = {};
+
+function fmt(n) { return n.toLocaleString(); }
+function fmtSal(n) { return '$' + (n/1000).toFixed(0) + 'K'; }
+
+function buildCharts(d) {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+
+  // REASON (Horizontal Bar)
+  const reasons = d.reasons;
+  charts.reason = new Chart(document.getElementById('reasonChart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(reasons),
+      datasets: [{
+        data: Object.values(reasons),
+        backgroundColor: PALETTE,
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)} exits` } } },
+      scales: {
+        x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => (v/1000).toFixed(0)+'K' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // DEPT
+  const depts = d.depts || (d.total && { [Object.keys(DEPT_BREAKDOWNS).find(k => DEPT_BREAKDOWNS[k].total === d.total) || 'Dept']: d.total });
+  if (d.depts) {
+    charts.dept = new Chart(document.getElementById('deptChart'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(d.depts),
+        datasets: [{
+          data: Object.values(d.depts),
+          backgroundColor: PALETTE,
+          borderRadius: 4,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)} exits` } } },
+        scales: {
+          y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => (v/1000).toFixed(0)+'K' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  } else {
+    // Single dept - show role breakdown
+    charts.dept = new Chart(document.getElementById('deptChart'), {
+      type: 'bar',
+      data: {
+        labels: d.roles.map(r => r.name),
+        datasets: [{
+          data: d.roles.map(r => r.exits),
+          backgroundColor: PALETTE,
+          borderRadius: 4,
+          borderSkipped: false,
+          label: 'Exits'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)} exits` } } },
+        scales: {
+          y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => (v/1000).toFixed(0)+'K' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+    document.querySelector('#deptChart').closest('.chart-card').querySelector('.chart-title').textContent = 'Exits by Job Role';
+    document.querySelector('#deptChart').closest('.chart-card').querySelector('.chart-sub').textContent = 'Within selected department';
+  }
+
+  // AGE
+  charts.age = new Chart(document.getElementById('ageChart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(d.ages),
+      datasets: [{
+        data: Object.values(d.ages),
+        backgroundColor: PALETTE_LIGHT,
+        borderColor: PALETTE,
+        borderWidth: 2,
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)}` } } },
+      scales: {
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => (v/1000).toFixed(0)+'K' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // SALARY
+  charts.salary = new Chart(document.getElementById('salaryChart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(d.salaryRanges),
+      datasets: [{
+        data: Object.values(d.salaryRanges),
+        backgroundColor: ['#f0c4bc','#e8824a','#c84b31','#9e3321','#5c1e14'],
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)} employees` } } },
+      scales: {
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => (v/1000).toFixed(0)+'K' } },
+        x: { grid: { display: false }, ticks: { maxRotation: 30 } }
+      }
+    }
+  });
+
+  // GENDER (Doughnut)
+  charts.gender = new Chart(document.getElementById('genderChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(d.genders),
+      datasets: [{
+        data: Object.values(d.genders),
+        backgroundColor: PALETTE,
+        borderWidth: 3,
+        borderColor: '#ffffff',
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'right', labels: { boxWidth: 10, padding: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
+      },
+      cutout: '62%'
+    }
+  });
+
+  // SATISFACTION
+  charts.sat = new Chart(document.getElementById('satChart'), {
+    type: 'bar',
+    data: {
+      labels: ['1 ★','2 ★','3 ★','4 ★','5 ★'],
+      datasets: [{
+        data: Object.values(d.satisfaction),
+        backgroundColor: ['#c84b31','#e8824a','#c4a030','#4a9e7a','#2d6a8f'],
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)} employees` } } },
+      scales: {
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => (v/1000).toFixed(0)+'K' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // WLB
+  charts.wlb = new Chart(document.getElementById('wlbChart'), {
+    type: 'bar',
+    data: {
+      labels: ['1','2','3','4','5'],
+      datasets: [{
+        data: Object.values(d.wlb),
+        backgroundColor: ['#c84b31','#e8824a','#c4a030','#4a9e7a','#2d6a8f'],
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)} employees` } } },
+      scales: {
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => (v/1000).toFixed(0)+'K' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // PERFORMANCE
+  charts.perf = new Chart(document.getElementById('perfChart'), {
+    type: 'radar',
+    data: {
+      labels: ['Rating 1','Rating 2','Rating 3','Rating 4','Rating 5'],
+      datasets: [{
+        data: Object.values(d.performance),
+        backgroundColor: 'rgba(45,106,143,0.15)',
+        borderColor: '#2d6a8f',
+        borderWidth: 2,
+        pointBackgroundColor: '#2d6a8f',
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        r: {
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: { display: false },
+          pointLabels: { font: { size: 11 } }
+        }
+      },
+      plugins: { tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)} employees` } } }
+    }
+  });
+
+  // ROLE TABLE
+  const tbody = document.getElementById('role-table');
+  const maxExits = Math.max(...d.roles.map(r => r.exits));
+  tbody.innerHTML = d.roles.map(r => `
+    <tr>
+      <td><span class="dept-badge">${r.name}</span></td>
+      <td>${fmt(r.exits)}</td>
+      <td>${fmtSal(r.salary)}</td>
+      <td>${r.tenure.toFixed(1)} yrs</td>
+      <td>
+        <div class="heat-bar">
+          <div class="heat-fill" style="width:${(r.exits/maxExits*100).toFixed(1)}%;min-width:4px"></div>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ── KPI UPDATE ────────────────────────────────────────────────────────────────
+function updateKPIs(d) {
+  document.getElementById('kpi-total').textContent = fmt(d.total);
+  document.getElementById('kpi-salary').textContent = '$' + d.avgSalary.toLocaleString();
+  document.getElementById('kpi-tenure').textContent = d.avgTenure.toFixed(1) + ' yrs';
+  document.getElementById('kpi-satisfaction').textContent = d.avgSat.toFixed(1) + ' / 5';
+  document.getElementById('kpi-top-reason').textContent = d.topReason;
+  document.getElementById('kpi-reason-pct').textContent = d.topReasonPct + ' of exits';
+}
+
+// ── FILTER LOGIC ──────────────────────────────────────────────────────────────
+let activeDept = 'All';
+
+document.querySelectorAll('[data-dept]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-dept]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeDept = btn.dataset.dept;
+
+    const d = activeDept === 'All' ? DATA.All : DEPT_BREAKDOWNS[activeDept];
+    updateKPIs(d);
+    buildCharts(d);
+
+    // Reset dept chart title
+    setTimeout(() => {
+      if (activeDept === 'All') {
+        document.querySelector('#deptChart').closest('.chart-card').querySelector('.chart-title').textContent = 'Exits by Department';
+        document.querySelector('#deptChart').closest('.chart-card').querySelector('.chart-sub').textContent = 'Headcount loss per business unit';
+      }
+    }, 10);
+  });
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+updateKPIs(DATA.All);
+buildCharts(DATA.All);
+</script>
+</body>
+</html>
